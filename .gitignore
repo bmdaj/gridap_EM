@@ -5,3 +5,4 @@ eigenmode_calculator/*.txt
 examples/plots/
 *.msh
 *.vtu
+*.mph
