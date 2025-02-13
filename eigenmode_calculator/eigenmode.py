@@ -1,8 +1,7 @@
 import meep as mp
 from meep import mpb
 
-def eigenmode_1D(eps_back, eps_wg, thk_wg, thk_dom, res, k_point, bands, pol="TE"):
-
+def eigenmode_init_1D(eps_back, eps_wg, thk_wg, thk_dom, res, k_point, bands):
 
     geometry_lattice = mp.Lattice(size=(0, thk_dom))
 
@@ -22,9 +21,12 @@ def eigenmode_1D(eps_back, eps_wg, thk_wg, thk_dom, res, k_point, bands, pol="TE
                     resolution=res,
                     default_material=default_material)
     
+    return ms
+
+def find_eigenmode_1D(ms, pol="TM"):
+
     if pol == "TE":
         ms.run_te(mpb.fix_efield_phase)
     elif pol == "TM":
-        raise ValueError("TM polarization not implemented yet")
-    
+        ms.run_tm(mpb.fix_hfield_phase)
     return ms

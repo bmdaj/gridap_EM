@@ -29,7 +29,7 @@ function set_tags(model, ε₁, ε₀)
 
     function ξ(tag)
         if tag == design_tag
-            return ε₁
+            return 0.5*ε₁
         elseif tag == passive_tag
             return ε₁
         else

@@ -6,3 +6,4 @@ examples/plots/
 *.msh
 *.vtu
 *.mph
+*.mph.lock

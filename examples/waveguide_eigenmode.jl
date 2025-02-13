@@ -18,7 +18,7 @@ out = true       # Output the results to a file
 
 print("Importing mesh...\n")
 
-model = GmshDiscreteModel("geometry.msh")
+model = GmshDiscreteModel("waveguide_mesh.msh")
 
 print("Outputing mesh...\n")
 
