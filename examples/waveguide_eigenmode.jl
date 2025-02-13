@@ -1,5 +1,9 @@
 using GridapGmsh
 using Gridap.Fields
+using Gridap
+using Arpack 
+using DelimitedFiles
+using Gridap.FESpaces
 
 include("../fea.jl")
 include("../plotter.jl")
@@ -18,7 +22,7 @@ out = true       # Output the results to a file
 
 print("Importing mesh...\n")
 
-model = GmshDiscreteModel("waveguide_mesh.msh")
+model = GmshDiscreteModel("waveguide_mode_mesh.msh")
 
 print("Outputing mesh...\n")
 
@@ -33,34 +37,28 @@ print("Setting up FEA...\n")
 order = 1 
 degree = 2
 neumann_tags = "Edges"
-source_tags = "Source"
+source_tags = "Mode"
 
-U, V, Ω, dΩ, Γ_n, dΓ_n, Γ_s, dΓ_s = fea_init(model, order, degree, neumann_tags, source_tags) 
+U, V, Ω, dΩ, Γ_n, dΓ_n, _, _ = fea_init(model, order, degree, neumann_tags, source_tags) 
 
 ε_tag, τ = set_tags(model, ε₁, ε₀)                                         # We set the permittivity tags for the design and passive regions 
 
 w(x) = -1.0im * k                                                          # absorbing boundary cpndition coefficient
-a(u,v) = ∫(  (∇(v))⊙(∇(u)) - (k^2*((ε_tag∘τ)*v*u))  )dΩ  + ∫( v*u*w )*dΓ_n # LHS weak form
-b(v) = ∫(v)*dΓ_s                                                           # RHS weak form
-
-# Solver setup:
-
+a(u,v) = ∫(  (∇(v))⊙(∇(u))- (k^2*((ε_tag∘τ)*v*u)))dΩ #+ ∫( v*u*w )*dΓ_n # LHS weak form
+b(v) = 0.0
+a1(u,v) =  ∫(v*u)dΩ 
 print("Solving the linear system of equations...\n")
 
-op = AffineFEOperator(a,b,U,V)
-uh = solve(op)
+A = get_matrix(AffineFEOperator(a,b,U,V))
+#A1 = get_matrix(AffineFEOperator(a1,b,U,V))
 
-# Plotting fields
+nev = 3
+λ, ϕ = eigs(A; nev=nev, sigma=-k^2*ε₁)
 
-print("Outputing results...\n")
+ϕ_cell = FEFunction(V, ϕ[:,1])
 
-if out == true
 
-    plot_e_field(uh,Ω)
-    plot_e_norm(uh,Ω)
+fig, ax, plt = plot(Ω, real(ϕ_cell), colormap=:viridis)
+save("examples/plots/mode.png", fig)
 
-    ε_field = CellField(ε_tag∘τ, Ω)
-    plot_perm(ε_field,Ω) 
-    
-end
-
+xe = get_cell_coordinates(Ω)
