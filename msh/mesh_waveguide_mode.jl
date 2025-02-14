@@ -5,27 +5,30 @@ function create_waveguide_mesh(w_tot, h_tot, w_wg, h_wg, w_src, w_dr, h_dr, lc)
     gmsh.initialize()
     gmsh.model.add("waveguide")
 
-    # Define points with characteristic length lc
-    p4 = gmsh.model.geo.addPoint(0, 0, 0, lc)
-    p3 = gmsh.model.geo.addPoint(w_tot, 0, 0, lc)
-    p2 = gmsh.model.geo.addPoint(w_tot, h_tot, 0, lc)
-    p1 = gmsh.model.geo.addPoint(0, h_tot, 0, lc)
-    p16 = gmsh.model.geo.addPoint(w_src, 0, 0, lc)
-    p13 = gmsh.model.geo.addPoint(w_src, h_tot, 0, lc)
+    x_off = 0.0
+    y_off = 0.0
 
-    # Define waveguide points 
-    p7 = gmsh.model.geo.addPoint(0, (h_tot - h_wg) / 2, 0, lc)
-    p5 = gmsh.model.geo.addPoint(0, (h_tot + h_wg) / 2, 0, lc)
-    p14 = gmsh.model.geo.addPoint(w_src, (h_tot + h_wg) / 2, 0, lc)
-    p15 = gmsh.model.geo.addPoint(w_src, (h_tot - h_wg) / 2, 0, lc)
-    p6 = gmsh.model.geo.addPoint(w_wg, (h_tot + h_wg) / 2, 0, lc)
-    p8 = gmsh.model.geo.addPoint(w_wg, (h_tot - h_wg) / 2, 0, lc)
+    # Define points with characteristic length lc and apply offset
+    p4 = gmsh.model.geo.addPoint(0 + x_off, 0 + y_off, 0, lc)
+    p3 = gmsh.model.geo.addPoint(w_tot + x_off, 0 + y_off, 0, lc)
+    p2 = gmsh.model.geo.addPoint(w_tot + x_off, h_tot + y_off, 0, lc)
+    p1 = gmsh.model.geo.addPoint(0 + x_off, h_tot + y_off, 0, lc)
+    p16 = gmsh.model.geo.addPoint(w_src + x_off, 0 + y_off, 0, lc)
+    p13 = gmsh.model.geo.addPoint(w_src + x_off, h_tot + y_off, 0, lc)
 
-    # Define design region points 
-    p12 = gmsh.model.geo.addPoint(w_wg, (h_tot - h_dr) / 2, 0, lc)
-    p11 = gmsh.model.geo.addPoint(w_wg + w_dr, (h_tot - h_dr) / 2, 0, lc)
-    p10 = gmsh.model.geo.addPoint(w_wg + w_dr, (h_tot + h_dr) / 2, 0, lc)
-    p9 = gmsh.model.geo.addPoint(w_wg, (h_tot + h_dr) / 2, 0, lc)
+    # Define waveguide points and apply offset
+    p7 = gmsh.model.geo.addPoint(0 + x_off, (h_tot - h_wg) / 2 + y_off, 0, lc)
+    p5 = gmsh.model.geo.addPoint(0 + x_off, (h_tot + h_wg) / 2 + y_off, 0, lc)
+    p14 = gmsh.model.geo.addPoint(w_src + x_off, (h_tot + h_wg) / 2 + y_off, 0, lc)
+    p15 = gmsh.model.geo.addPoint(w_src + x_off, (h_tot - h_wg) / 2 + y_off, 0, lc)
+    p6 = gmsh.model.geo.addPoint(w_wg + x_off, (h_tot + h_wg) / 2 + y_off, 0, lc)
+    p8 = gmsh.model.geo.addPoint(w_wg + x_off, (h_tot - h_wg) / 2 + y_off, 0, lc)
+
+    # Define design region points and apply offset
+    p12 = gmsh.model.geo.addPoint(w_wg + x_off, (h_tot - h_dr) / 2 + y_off, 0, lc)
+    p11 = gmsh.model.geo.addPoint(w_wg + w_dr + x_off, (h_tot - h_dr) / 2 + y_off, 0, lc)
+    p10 = gmsh.model.geo.addPoint(w_wg + w_dr + x_off, (h_tot + h_dr) / 2 + y_off, 0, lc)
+    p9 = gmsh.model.geo.addPoint(w_wg + x_off, (h_tot + h_dr) / 2 + y_off, 0, lc)
 
     # Define lines
     l1 = gmsh.model.geo.addLine(p1, p13,1)
