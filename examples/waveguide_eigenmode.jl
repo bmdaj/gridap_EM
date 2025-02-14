@@ -4,6 +4,9 @@ using Gridap
 using Arpack 
 using DelimitedFiles
 using Gridap.FESpaces
+using Gridap.Geometry
+using Gridap.Fields
+using Plots
 
 include("../fea.jl")
 include("../plotter.jl")
@@ -57,9 +60,21 @@ nev = 3
 λ, ϕ = eigs(A; nev=nev, sigma=-k^2*ε₁)
 
 ϕ_cell = FEFunction(V, ϕ[:,1])
+coords = Gridap.Geometry.get_node_coordinates(Ω)
+ϕ_line_values = []
+y_values = []
+for coord in coords
+    x = coord[1]
+    if abs(x - 5.0) < 1e-10
+        push!(ϕ_line_values, ϕ_cell(coord))
+        push!(y_values, coord[2])
+    end
+end
+# Reorder y_values in ascending order and order ϕ_line_values accordingly
+sorted_indices = sortperm(y_values)
+y_values = y_values[sorted_indices]
+ϕ_line_values = ϕ_line_values[sorted_indices]
 
-
-fig, ax, plt = plot(Ω, real(ϕ_cell), colormap=:viridis)
-save("examples/plots/mode.png", fig)
-
-xe = get_cell_coordinates(Ω)
+Plots.plot(y_values, real(ϕ_line_values))
+#fig, ax, plt = Plots.plot(knots[1], ϕ_mode(knots[1]))
+#save("examples/plots/mode_line.png", fig)
