@@ -125,7 +125,7 @@ w_src  = 80          # Location of the source
 w_dr = 75               # Width of the design region
 h_dr = 75               # Height of the design region
 
-resol = 50.0      # Number of points per wavelength
+resol = 100.0      # Number of points per wavelength
 lc = λ/resol      # Characteristic length
 
 create_waveguide_mesh(w_tot, h_tot, w_wg, h_wg, w_src, w_dr, h_dr, lc)
