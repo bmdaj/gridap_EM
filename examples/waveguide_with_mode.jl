@@ -20,6 +20,8 @@ k = 2*π/λ        # Wave number
 tag_list = ["Passive"]   # List of tag names
 out = true       # Output the results to a file
 w_src = -195.0           # Source position
+n_mode = 2              # mode number for input
+
 
 # We import the geometry of the problem from the file `geometry.msh`:
 
@@ -56,7 +58,7 @@ A = get_matrix(AffineFEOperator(a,b,U,V))
 nev = 3
 
 λ, ϕ = eigs(A; nev=nev, sigma=-k^2*ε₁)
-ϕ_normal = ϕ[:,1]/maximum(abs.(real(ϕ[:,1])))
+ϕ_normal = ϕ[:,n_mode]/maximum(abs.(real(ϕ[:,n_mode])))
 
 ϕ_cell = FEFunction(V, ϕ_normal)
 

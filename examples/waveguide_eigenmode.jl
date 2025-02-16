@@ -60,11 +60,13 @@ A = get_matrix(AffineFEOperator(a,b,U,V))
 nev = 3
 λ, ϕ = eigs(A; nev=nev, sigma=-k^2*ε₁)
 
-ϕ_normal = ϕ[:,1]/maximum(abs.(real(ϕ[:,1])))
+n_mode = 2
+
+ϕ_normal = ϕ[:,n_mode]/maximum(abs.(real(ϕ[:,n_mode])))
 
 ϕ_cell = FEFunction(V, ϕ_normal)
 
-fig, ax, plt = GLMakie.plot(Ω, real(ϕ_cell), colormap=:inferno)
+fig, ax, plt = GLMakie.plot(Ω, real(ϕ_cell), colormap=:seismic)
 Colorbar(fig[1, 2], plt)
 save("examples/plots/mode.png", fig)
 
@@ -85,7 +87,7 @@ y_values = y_values[sorted_indices]
 
 
 
-Plots.plot(y_values, real(ϕ_line_values))
+Plots.plot(y_values, abs.(ϕ_line_values))
 
 
 #fig, ax, plt = Plots.plot(knots[1], ϕ_mode(knots[1]))
