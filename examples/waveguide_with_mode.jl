@@ -5,6 +5,8 @@ using Arpack
 
 include("../fea.jl")
 include("../plotter.jl")
+include("../pml.jl")
+
 
 # We stary by defining the parameters of the problem:
 
@@ -17,6 +19,7 @@ k = 2*π/λ        # Wave number
 εₛ = [ε₁]                  # List of relative permittivities
 tag_list = ["Passive"]   # List of tag names
 out = true       # Output the results to a file
+w_src = -195.0           # Source position
 
 # We import the geometry of the problem from the file `geometry.msh`:
 
@@ -51,15 +54,18 @@ print("Solving the eigenvalue problem...\n")
 A = get_matrix(AffineFEOperator(a,b,U,V))
 
 nev = 3
-λ, ϕ = eigs(A; nev=nev, sigma=-k^2*ε₁)
 
-ϕ_cell = FEFunction(V, ϕ[:,1])
+λ, ϕ = eigs(A; nev=nev, sigma=-k^2*ε₁)
+ϕ_normal = ϕ[:,1]/maximum(abs.(real(ϕ[:,1])))
+
+ϕ_cell = FEFunction(V, ϕ_normal)
+
 coords = Gridap.Geometry.get_node_coordinates(Ω)
 ϕ_line_values = []
 y_values = []
 for coord in coords
     x = coord[1]
-    if abs(x - 5.0) < 1e-10
+    if abs(x - w_src) < 1e-10
         push!(ϕ_line_values, ϕ_cell(coord))
         push!(y_values, coord[2])
     end
@@ -86,6 +92,11 @@ k = 2*π/λ                          # Wave number
 tag_list = ["Design", "Passive"]   # List of tag names
 out = true                         # Output the results to a file
 
+w_tot = 400.0
+h_tot = 200.0
+d_pml = λ                          # Thickness of the PML
+
+
 # We import the geometry of the problem from the file `geometry.msh`:
 
 print("Importing mesh...\n")
@@ -108,12 +119,14 @@ dirichlet_tags = "None"
 neumann_tags = "Edges"
 source_tags = "Source"
 
-U, V, Ω, dΩ, Γ_n, dΓ_n, Γ_s, dΓ_s = fea_init(model, order, degree, dirichlet_tags, neumann_tags, source_tags) 
+U, V, Ω, dΩ, Γ_n, dΓ_n, Γ_s, dΓ_s = fea_init(model, order, degree, dirichlet_tags, neumann_tags, source_tags)
 
 ε_tag, τ = set_tags(model, εₛ, tag_list, ε₀)                                         # We set the permittivity tags for the design and passive regions 
 
+Λf = pml(w_tot,h_tot,k,d_pml)                                                               # We set the PML function
+
 w(x) = -1.0im * k                                                          # absorbing boundary cpndition coefficient
-a(u,v) = ∫(  (∇(v))⊙(∇(u)) - (k^2*((ε_tag∘τ)*v*u))  )dΩ  + ∫( v*u*w )*dΓ_n # LHS weak form
+a(u,v) = ∫(  (∇.*(Λf*v))⊙(Λf.*∇(u)) - (k^2*((ε_tag∘τ)*v*u))  )dΩ  + ∫( v*u*w )*dΓ_n # LHS weak form
 
 b(v) = ∫(ϕ_mode*v)*dΓ_s                                                           # RHS weak form
 

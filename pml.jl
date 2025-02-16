@@ -25,7 +25,10 @@ end
 
 Fields.∇(Λf::Λ) = x->TensorValue{2,2,ComplexF64}(-(Λf(x)[1])^2*ds_PML(x,Λf.σ,Λf.k,Λf.LH,Λf.d_pml)[1],0,0,-(Λf(x)[2])^2*ds_PML(x,Λf.σ,Λf.k,Λf.LH,Λf.d_pml)[2])
 
-function pml(L,H,k,d_pml)
+function pml(w_tot,h_tot,k,d_pml)
+
+    L = w_tot - 2*d_pml
+    H = h_tot - 2*d_pml
 
     Rpml = 1e-12      # Tolerance for PML reflection
     σ = -3/4*log(Rpml)/d_pml # σ_0

@@ -5,8 +5,8 @@ function create_waveguide_mesh(w_tot, h_tot, w_wg, h_wg, w_src, w_dr, h_dr, lc)
     gmsh.initialize()
     gmsh.model.add("waveguide")
 
-    x_off = 0.0
-    y_off = 0.0
+    x_off = -w_tot/2
+    y_off = -h_tot/2
 
     # Define points with characteristic length lc and apply offset
     p4 = gmsh.model.geo.addPoint(0 + x_off, 0 + y_off, 0, lc)

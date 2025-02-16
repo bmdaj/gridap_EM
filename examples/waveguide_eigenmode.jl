@@ -21,6 +21,7 @@ k = 2*π/λ        # Wave number
 ε₀ = 1.0         # Relative electric permittivity for the background
 εₛ = [ε₁]                  # List of relative permittivities
 tag_list = ["Passive"]   # List of tag names
+w_src = -195.0           # Source position
 out = true       # Output the results to a file
 
 # We import the geometry of the problem from the file `geometry.msh`:
@@ -59,13 +60,20 @@ A = get_matrix(AffineFEOperator(a,b,U,V))
 nev = 3
 λ, ϕ = eigs(A; nev=nev, sigma=-k^2*ε₁)
 
-ϕ_cell = FEFunction(V, ϕ[:,1])
+ϕ_normal = ϕ[:,1]/maximum(abs.(real(ϕ[:,1])))
+
+ϕ_cell = FEFunction(V, ϕ_normal)
+
+fig, ax, plt = GLMakie.plot(Ω, real(ϕ_cell), colormap=:inferno)
+Colorbar(fig[1, 2], plt)
+save("examples/plots/mode.png", fig)
+
 coords = Gridap.Geometry.get_node_coordinates(Ω)
 ϕ_line_values = []
 y_values = []
 for coord in coords
     x = coord[1]
-    if abs(x - 5.0) < 1e-10
+    if abs(x - w_src) < 1e-10
         push!(ϕ_line_values, ϕ_cell(coord))
         push!(y_values, coord[2])
     end
@@ -75,6 +83,10 @@ sorted_indices = sortperm(y_values)
 y_values = y_values[sorted_indices]
 ϕ_line_values = ϕ_line_values[sorted_indices]
 
+
+
 Plots.plot(y_values, real(ϕ_line_values))
+
+
 #fig, ax, plt = Plots.plot(knots[1], ϕ_mode(knots[1]))
 #save("examples/plots/mode_line.png", fig)
