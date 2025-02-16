@@ -2,7 +2,6 @@ geom/
 opt_results/
 eigenmode_calculator/plots/
 eigenmode_calculator/*.txt
-examples/plots/
 *.msh
 *.vtu
 *.mph
