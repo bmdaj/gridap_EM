@@ -21,7 +21,9 @@ function design_variables_init()
 
 end
 
-function Filter(r_f, β, η, Ω_d, dΩ_d)
+function Filter(r_f, dΩ_d)
+
+    a_f(r, u, v) = r_f^2 * (∇(v) ⋅ ∇(u))
 
     ξ_init = FEFunction(design_params.P, p0)
     op = AffineFEOperator(design_params.Pf, design_params.Qf) do u, v
