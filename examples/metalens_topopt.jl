@@ -1,8 +1,14 @@
 using GridapGmsh
 using Gridap.Fields
+using NLopt
+using ChainRulesCore, Zygote
+import ChainRulesCore: rrule
+
+NO_FIELDS = ZeroTangent()
 
 include("../fea.jl")
 include("../topopt.jl")
+include("../sensitivity.jl")
 include("../plotter.jl")
 
 # We stary by defining the parameters of the problem:
@@ -98,8 +104,8 @@ b_vec = assemble_vector(v->(∫(v)dΓ_s), V)
 
 print("Solving the linear system of equations...\n")
 
-u_vec = A_mat \ b_vec
-uh = FEFunction(U, u_vec)
+Ez_vec = A_mat \ b_vec
+Ez = FEFunction(U, u_vec)
 
 # Plotting fields
 
@@ -107,9 +113,9 @@ print("Outputing results...\n")
 
 if out == true
 
-    plot_save_field("examples/plots/init_e_real_field.png", real(uh), Ω, "seismic")          # Save the real part of electric field
-    plot_save_field("examples/plots/init_e_imag_field.png", imag(uh), Ω, "seismic")          # Save the imaginary part of electric field
-    plot_save_field("examples/plots/init_e_norm_field.png", real(uh*conj(uh)), Ω, "inferno") # Save the imaginary part of electric field
+    plot_save_field("examples/plots/init_e_real_field.png", real(Ez), Ω, "seismic")          # Save the real part of electric field
+    plot_save_field("examples/plots/init_e_imag_field.png", imag(Ez), Ω, "seismic")          # Save the imaginary part of electric field
+    plot_save_field("examples/plots/init_e_norm_field.png", real(Ez*conj(Ez)), Ω, "inferno") # Save the imaginary part of electric field
 
     ε_field = CellField(ε_tag∘τ, Ω) + (ξ -> ξ_inter(ξ, ε₀, ε₁))∘ξ_th
 
@@ -117,3 +123,113 @@ if out == true
     
 end
 
+# Objective: optimize the field intensity at the desired position
+
+println("Setting up the FOM and the sensitivities...")
+
+function MatrixFOM(U, V, dΩ)
+
+    x0 = VectorValue(0,50)  # Position of the field to be optimized
+    δ = 1
+
+    return assemble_matrix(U, V) do u, v
+        ∫((x->(1/(2*π)*exp(-norm(x - x0)^2 / 2 / δ^2))) * (∇(u) ⋅ ∇(v)) )dΩ
+    end
+end
+
+function FOM_eval(ξ_f_vec; U, V, β, η, dΩ, dΓ_s, design_params)
+
+    ξ_fh = FEFunction(design_params.Pf, ξ_f_vec)
+    ξ_th = (ξ_f -> Threshold(ξ_f; β, η)) ∘ ξ_fh
+    A_mat = MatrixA(ξ_th; U, V)
+    b_vec = assemble_vector(v->(∫(v)dΓ_s), V)
+    Ez_vec = A_mat \ b_vec
+
+    O_mat = MatrixFOM(U, V, dΩ)
+    real(Ez_vec' * O_mat * Ez_vec)
+end
+
+function rrule(::typeof(FOM_eval), ξ_f_vec; U, V, β, η, dΩ, dΓ_s, design_params)
+    function U_pullback(dgdg)
+      NO_FIELDS, dgdg * dFOM_dξf(ξ_f_vec; U, V, β, η, design_params)
+    end
+    FOM_eval(ξ_f_vec; U, V, β, η, dΩ, dΓ_s, design_params), U_pullback
+end
+
+function dFOM_dξf(ξ_f_vec; U, V, β, η, design_params)
+    
+    ξ_fh = FEFunction(design_params.Pf, ξ_f_vec)
+    ξ_th = (ξ_f -> Threshold(ξ_f; β, η)) ∘ ξ_fh
+    A_mat = MatrixA(ξ_th; U, V)
+    b_vec = assemble_vector(v->(∫(v)dΓ_s), V)
+    Ez_vec = A_mat \ b_vec
+
+    O_mat = MatrixFOM(U, V, dΩ)
+
+    Ez = FEFunction(U, Ez_vec)
+    λ_adj_vec =  A_mat' \ (O_mat * Ez_vec)
+    λ_adj_conjh = FEFunction(U, conj(λ_adj_vec))
+
+    l_temp(dξ) = ∫(real(-2 * dA_dξf(Ez, λ_adj_conjh, ξ_fh; β, η)) * dξ)dΩ_d
+    dfom_dξf = assemble_vector(l_temp, design_params.Pf)
+
+    return dfom_dξf
+end
+
+ξ_test = rand(design_params.np)
+δξ₀ = 1e-8
+δξ = δξ₀*rand(design_params.np)
+grad = zeros(design_params.np)
+
+FOM₀ = dFOM_dξ(ξ_test, grad; U, V, r_f, β, η, dΩ, dΩ_d, dΓ_s, design_params)
+FOM₁ = dFOM_dξ(ξ_test+δξ, []; U, V, r_f, β, η, dΩ, dΩ_d, dΓ_s, design_params)
+
+println("Finite difference check...")
+println(FOM₁-FOM₀)
+println(grad'*δξ)
+
+println("Setting up the optimization...")
+
+function dFOM_dξ_optimize(ξ₀; r_f, β, η, TOL = 1e-4, MAX_ITER = 500) # NEED TO ADD THE CORRECT ARGUMENTS HERE
+    ##################### Optimize #################
+    opt = Opt(:LD_MMA, design_params.np)
+    opt.lower_bounds = 0
+    opt.upper_bounds = 1
+    opt.ftol_rel = TOL
+    opt.maxeval = MAX_ITER
+    opt.max_objective = (ξ, grad) -> dFOM_dξ(ξ, grad; U, V, r_f, β, η, dΩ, dΩ_d, dΓ_s, design_params)
+
+    (FOM_opt, ξ_opt, ret) = optimize(opt, ξ₀)
+    @show numevals = opt.numevals # the number of function evaluations
+    return FOM_opt, ξ_opt
+end
+
+# STILL NEED TO ADD THE CONTINUATIOn SCHEME
+FOM_opt = 0
+ξ_opt = ξ_0_vec
+TOL = 1e-8
+MAX_ITER = 100
+
+FOM_opt, ξ_opt = dFOM_dξ_optimize(ξ_opt; r_f, β, η, TOL, MAX_ITER)
+
+println("Obtaining optimized solution...")
+
+ξ_f_vec = ξf_ξ(ξ_opt; r_f, dΩ_d)
+ξ_fh = FEFunction(design_params.Pf, ξ_f_vec)
+ξ_th = (ξ_f -> Threshold(ξ_f; β, η)) ∘ ξ_fh
+A_mat = MatrixA(ξ_th; U, V)
+b_vec = assemble_vector(v->(∫(v)dΓ_s), V)
+Ez_vec = A_mat \ b_vec
+Ez = FEFunction(U, Ez_vec)
+
+if out == true
+
+    plot_save_field("examples/plots/opt_e_real_field.png", real(Ez), Ω, "seismic")          # Save the real part of electric field
+    plot_save_field("examples/plots/opt_e_imag_field.png", imag(Ez), Ω, "seismic")          # Save the imaginary part of electric field
+    plot_save_field("examples/plots/opt_e_norm_field.png", real(Ez*conj(Ez)), Ω, "inferno") # Save the imaginary part of electric field
+
+    ε_field = CellField(ε_tag∘τ, Ω) + (ξ -> ξ_inter(ξ, ε₀, ε₁))∘ξ_th
+
+    plot_save_field("examples/plots/opt_perm.png", real(ε_field), Ω, "viridis")             # Save the real part of the permittivity
+    
+end
