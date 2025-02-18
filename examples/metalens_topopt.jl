@@ -107,13 +107,13 @@ print("Outputing results...\n")
 
 if out == true
 
-    plot_save_field("examples/plots/e_real_field.png", real(uh), Ω, "seismic")          # Save the real part of electric field
-    plot_save_field("examples/plots/e_imag_field.png", imag(uh), Ω, "seismic")          # Save the imaginary part of electric field
-    plot_save_field("examples/plots/e_norm_field.png", real(uh*conj(uh)), Ω, "inferno") # Save the imaginary part of electric field
+    plot_save_field("examples/plots/init_e_real_field.png", real(uh), Ω, "seismic")          # Save the real part of electric field
+    plot_save_field("examples/plots/init_e_imag_field.png", imag(uh), Ω, "seismic")          # Save the imaginary part of electric field
+    plot_save_field("examples/plots/init_e_norm_field.png", real(uh*conj(uh)), Ω, "inferno") # Save the imaginary part of electric field
 
     ε_field = CellField(ε_tag∘τ, Ω) + (ξ -> ξ_inter(ξ, ε₀, ε₁))∘ξ_th
 
-    plot_save_field("examples/plots/perm.png", real(ε_field), Ω, "viridis")             # Save the real part of the permittivity
+    plot_save_field("examples/plots/init_perm.png", real(ε_field), Ω, "viridis")             # Save the real part of the permittivity
     
 end
 
