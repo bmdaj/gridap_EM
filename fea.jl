@@ -1,5 +1,6 @@
 using Gridap
 using Gridap.Geometry
+using LinearAlgebra
 
 function fea_init(model, order, degree, dirichlet_tags="None", neumann_tags="None", source_tags="None")
 

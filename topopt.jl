@@ -2,15 +2,15 @@ function design_variables_init()
 
     # Define the unfiltered design design_variables
 
-    p_reffe = ReferenceFE(lagrangian, Float64, 0)
-    Q = TestFESpace(Ω_d, p_reffe, vector_type = Vector{Float64})
+    ξ_reffe = ReferenceFE(lagrangian, Float64, 0)
+    Q = TestFESpace(Ω_d, ξ_reffe, vector_type = Vector{Float64})
     P = Q
     np = num_free_dofs(P)
 
     # Define the filtered design design_variables
 
-    pf_reffe = ReferenceFE(lagrangian, Float64, 1)
-    Qf = TestFESpace(Ω_d, pf_reffe, vector_type = Vector{Float64})
+    ξf_reffe = ReferenceFE(lagrangian, Float64, 1)
+    Qf = TestFESpace(Ω_d, ξf_reffe, vector_type = Vector{Float64})
     Pf = Qf
 
     # We pack everything in a dictionary
@@ -21,15 +21,16 @@ function design_variables_init()
 
 end
 
-function Filter(r_f, dΩ_d)
+a_f(r_f, u, v) = r_f^2 * (∇(v) ⋅ ∇(u))
 
-    a_f(r_f, u, v) = r_f^2 * (∇(v) ⋅ ∇(u))
+function Filter(ξ; r_f, dΩ_d)
 
-    ξ_init = FEFunction(design_params.P, p0)
+    ξ_init = FEFunction(design_params.P, ξ)
     op = AffineFEOperator(design_params.Pf, design_params.Qf) do u, v
-        ∫(a_f(r, u, v))dΩ_d + ∫(v * u)dΩ_d, ∫(v * ξ_init)dΩ_d
+        ∫(a_f(r_f, u, v))dΩ_d + ∫(v * u)dΩ_d, ∫(v * ξ_init)dΩ_d
       end
     ξ_f = solve(op)
+
     return get_free_dof_values(ξ_f)
 
 end
@@ -38,12 +39,8 @@ function Threshold(ξ_f; β, η)
     return ((tanh(β * η) + tanh(β * (ξ_f - η))) / (tanh(β * η) + tanh(β * (1.0 - η))))
 end
 
-function mat_interpolation_perm(ξ, ε₀, ε₁, type="linear")
-    if type == "linear"
-        return ε₀ + ξ*(ε1 - ε0)
-    elseif type == "quadratic"
-        error("Unknown interpolation type")
-    end  
+function ξ_inter(ξ_th, ε₀, ε₁)
+    return ε₀ + ξ_th*(ε₁ - ε₀) 
 end
 
 
