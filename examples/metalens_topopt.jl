@@ -17,6 +17,10 @@ k = 2*π/λ                          # Wave number
 tag_list = ["Design", "Passive"]   # List of tag names
 out = true                         # Output the results to a file
 
+d_pml = λ                          # Thickness of the PML
+w_tot = 200.0 + 2 * d_pml
+h_tot = 200.0 + 2 * d_pml
+
 # We import the geometry of the problem from the file `geometry.msh`:
 
 print("Importing mesh...\n")
@@ -40,14 +44,16 @@ neumann_tags = "Edges"
 source_tags =  "Source"
 design_tags = "Design"
 
-U, V, Ω, dΩ, Ω_d, dΩ_d, Γ_n, dΓ_n, Γ_s, dΓ_s = fea_init_topopt(model, order, degree, dirichlet_tags, neumann_tags, source_tags) 
+U, V, Ω, dΩ, Ω_d, dΩ_d, Γ_n, dΓ_n, Γ_s, dΓ_s = fea_init_topopt(model, order, degree, dirichlet_tags, neumann_tags, design_tags, source_tags) 
 design_params = design_variables_init()
 
-ε_tag, τ = set_tags(model, εₛ, tag_list, ε₀)                               # We set the permittivity tags for the design and passive regions 
+ε_tag, τ = set_tags(model, εₛ, tag_list, ε₀)                                                             # We set the permittivity tags for the design and passive regions 
 
-w(x) = -1.0im * k                                                          # absorbing boundary condition coefficient
-a(u,v) = ∫((∇(v))⊙(∇(u)) - (k^2*((ε_tag∘τ)*v*u))  )dΩ  + ∫( v*u*w )*dΓ_n   # LHS weak form
-b(v) = ∫(v)*dΓ_s                                                           # RHS weak form
+Λf = pml(w_tot, h_tot, k, d_pml)                                                                         # We set the PML function
+
+w(x) = -1.0im * k                                                                                        # absorbing boundary condition coefficient
+a(u, v) = ∫((∇ .* (Λf * v)) ⊙ (Λf .* ∇(u)) - (k^2 * ((ε_tag ∘ τ) * v * u)))dΩ + ∫(v * u * w) * dΓ_n      # LHS weak form
+b(v) = ∫(v)*dΓ_s                                                                                         # RHS weak form
 
 # Solver setup:
 
