@@ -47,6 +47,26 @@ function fea_init(model, order, degree, dirichlet_tags="None", neumann_tags="Non
 
 end
 
+function fea_init_topopt(model, order, degree, dirichlet_tags="None", neumann_tags="None", design_tags="None", source_tags="None")
+
+    U, V, Ω, dΩ, Γ_n, dΓ_n, Γ_s, dΓ_s = fea_init(model, order, degree, dirichlet_tags, neumann_tags, source_tags)
+
+    if design_tags == "None"
+        
+        Ω_d = false
+        dΩ_d = false
+    
+    else
+
+        Ω_d = Triangulation(model, tags="Design")
+        dΩ_d = Measure(Ω_d, degree)
+
+    end
+
+    return U, V, Ω, dΩ, Ω_d, dΩ_d, Γ_n, dΓ_n, Γ_s, dΓ_s    
+
+end
+
 function set_tags(model, εₛ, tag_list, ε₀)
 
     labels = get_face_labeling(model)

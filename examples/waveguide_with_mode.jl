@@ -2,6 +2,7 @@ using GridapGmsh
 using Gridap.Fields
 using Interpolations
 using Arpack
+using DelimitedFiles
 
 include("../fea.jl")
 include("../plotter.jl")

@@ -2,7 +2,7 @@ using GridapGmsh
 using Gridap.Fields
 
 include("../fea.jl")
-include("../pml.jl")
+include("../topopt.jl")
 include("../plotter.jl")
 
 # We stary by defining the parameters of the problem:
@@ -16,10 +16,6 @@ k = 2*π/λ                          # Wave number
 εₛ = [0.5*ε₁, ε₁]                  # List of relative permittivities
 tag_list = ["Design", "Passive"]   # List of tag names
 out = true                         # Output the results to a file
-
-d_pml = λ                          # Thickness of the PML
-w_tot = 200.0 + 2 * d_pml
-h_tot = 200.0 + 2 * d_pml
 
 # We import the geometry of the problem from the file `geometry.msh`:
 
@@ -42,16 +38,16 @@ degree = 2
 dirichlet_tags = "None"
 neumann_tags = "Edges"
 source_tags =  "Source"
+design_tags = "Design"
 
-U, V, Ω, dΩ, Γ_n, dΓ_n, Γ_s, dΓ_s = fea_init(model, order, degree, dirichlet_tags, neumann_tags, source_tags) 
+U, V, Ω, dΩ, Ω_d, dΩ_d, Γ_n, dΓ_n, Γ_s, dΓ_s = fea_init_topopt(model, order, degree, dirichlet_tags, neumann_tags, source_tags) 
+design_params = design_variables_init()
 
-ε_tag, τ = set_tags(model, εₛ, tag_list, ε₀)                                                        # We set the permittivity tags for the design and passive regions 
+ε_tag, τ = set_tags(model, εₛ, tag_list, ε₀)                               # We set the permittivity tags for the design and passive regions 
 
-Λf = pml(w_tot, h_tot, k, d_pml)                                                                    # We set the PML function
-
-w(x) = -1.0im * k                                                                                   # absorbing boundary cpndition coefficient
-a(u, v) = ∫((∇ .* (Λf * v)) ⊙ (Λf .* ∇(u)) - (k^2 * ((ε_tag ∘ τ) * v * u)))dΩ + ∫(v * u * w) * dΓ_n # LHS weak form
-b(v) = ∫(v)*dΓ_s                                                                                    # RHS weak form
+w(x) = -1.0im * k                                                          # absorbing boundary condition coefficient
+a(u,v) = ∫((∇(v))⊙(∇(u)) - (k^2*((ε_tag∘τ)*v*u))  )dΩ  + ∫( v*u*w )*dΓ_n   # LHS weak form
+b(v) = ∫(v)*dΓ_s                                                           # RHS weak form
 
 # Solver setup:
 
