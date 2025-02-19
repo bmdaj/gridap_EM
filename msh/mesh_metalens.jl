@@ -82,7 +82,7 @@ hsub = 5        # subtrate thickness
 hd = 15          # thickness of design region
 d_pml = 35       # Thickness of the PML
 
-resol = 10.0      # Number of points per wavelength
+resol = 25.0      # Number of points per wavelength
 lc = λ/resol      # Characteristic length
 
 MeshGenerator(L,H, hs, h, hsub, hd, d_pml,lc)

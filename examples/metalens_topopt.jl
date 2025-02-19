@@ -7,6 +7,7 @@ import ChainRulesCore: rrule
 NO_FIELDS = ZeroTangent()
 
 include("../fea.jl")
+include("../pml.jl")
 include("../topopt.jl")
 include("../sensitivity.jl")
 include("../plotter.jl")
@@ -105,7 +106,7 @@ b_vec = assemble_vector(v->(∫(v)dΓ_s), V)
 print("Solving the linear system of equations...\n")
 
 Ez_vec = A_mat \ b_vec
-Ez = FEFunction(U, u_vec)
+Ez = FEFunction(U, Ez_vec)
 
 # Plotting fields
 
@@ -146,7 +147,11 @@ function FOM_eval(ξ_f_vec; U, V, β, η, dΩ, dΓ_s, design_params)
     Ez_vec = A_mat \ b_vec
 
     O_mat = MatrixFOM(U, V, dΩ)
+
+    println("Value of the objective function: ", real(Ez_vec' * O_mat * Ez_vec))
+
     real(Ez_vec' * O_mat * Ez_vec)
+
 end
 
 function rrule(::typeof(FOM_eval), ξ_f_vec; U, V, β, η, dΩ, dΓ_s, design_params)
@@ -208,7 +213,7 @@ end
 FOM_opt = 0
 ξ_opt = ξ_0_vec
 TOL = 1e-8
-MAX_ITER = 100
+MAX_ITER = 50
 
 FOM_opt, ξ_opt = dFOM_dξ_optimize(ξ_opt; r_f, β, η, TOL, MAX_ITER)
 
