@@ -23,11 +23,11 @@ end
 
 a_f(r_f, u, v) = r_f^2 * (∇(v) ⋅ ∇(u))
 
-function Filter(ξ; r_f, dΩ_d)
+function Filter(ξ; r_f, fem_params, design_params)
 
     ξ_init = FEFunction(design_params.P, ξ)
     op = AffineFEOperator(design_params.Pf, design_params.Qf) do u, v
-        ∫(a_f(r_f, u, v))dΩ_d + ∫(v * u)dΩ_d, ∫(v * ξ_init)dΩ_d
+        ∫(a_f(r_f, u, v))fem_params.dΩ_d + ∫(v * u)fem_params.dΩ_d, ∫(v * ξ_init)fem_params.dΩ_d
       end
     ξ_f = solve(op)
 

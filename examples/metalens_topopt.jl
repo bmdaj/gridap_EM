@@ -22,7 +22,7 @@ k = 2*π/λ                          # Wave number
 ε₀ = 1.0                           # Relative electric permittivity for the background
 εₛ = [ε₁]                          # List of relative permittivities
 tag_list = ["Passive"]             # List of tag names
-out = true                         # Output the results to a file
+out = false                         # Output the results to a file
 
 d_pml = λ                          # Thickness of the PML
 w_tot = 200.0 + 2 * d_pml
@@ -61,12 +61,13 @@ source_tags =  "Source"
 design_tags = "Design"
 
 U, V, Ω, dΩ, Ω_d, dΩ_d, Γ_n, dΓ_n, Γ_s, dΓ_s = fea_init_topopt(model, order, degree, dirichlet_tags, neumann_tags, design_tags, source_tags) 
+fem_params = (; U, V, Ω, dΩ, Ω_d, dΩ_d, Γ_n, dΓ_n, Γ_s, dΓ_s)
 
 # We set up the design parameters and filter and threshold the design variables:
 
 design_params = design_variables_init()
 ξ_0_vec =  ξ₀ * ones(design_params.np)
-ξ_f_vec = Filter(ξ_0_vec; r_f, dΩ_d)
+ξ_f_vec = Filter(ξ_0_vec; r_f, fem_params, design_params)
 ξ_fh = FEFunction(design_params.Pf, ξ_f_vec)
 ξ_th = (ξ_f -> Threshold(ξ_f; β, η)) ∘ ξ_fh
 
@@ -128,25 +129,26 @@ end
 
 println("Setting up the FOM and the sensitivities...")
 
-function MatrixFOM(U, V, dΩ)
+function MatrixFOM(fem_params)
 
     x0 = VectorValue(0,50)  # Position of the field to be optimized
     δ = 1
 
-    return assemble_matrix(U, V) do u, v
-        ∫((x->(1/(2*π)*exp(-norm(x - x0)^2 / 2 / δ^2))) * (∇(u) ⋅ ∇(v)) )dΩ
+    return assemble_matrix(fem_params.U, fem_params.V) do u, v
+        ∫((x->(1/(2*π)*exp(-norm(x - x0)^2 / 2 / δ^2))) * (∇(u) ⋅ ∇(v)) )fem_params.dΩ
     end
 end
 
-function FOM_eval(ξ_f_vec; U, V, β, η, dΩ, dΓ_s, design_params)
+
+function FOM_eval(ξ_f_vec; β, η, fem_params, design_params)
 
     ξ_fh = FEFunction(design_params.Pf, ξ_f_vec)
     ξ_th = (ξ_f -> Threshold(ξ_f; β, η)) ∘ ξ_fh
-    A_mat = MatrixA(ξ_th; U, V)
-    b_vec = assemble_vector(v->(∫(v)dΓ_s), V)
+    A_mat = MatrixA(ξ_th; fem_params.U, fem_params.V)
+    b_vec = assemble_vector(v->(∫(v)dΓ_s), fem_params.V)
     Ez_vec = A_mat \ b_vec
 
-    O_mat = MatrixFOM(U, V, dΩ)
+    O_mat = MatrixFOM(fem_params)
 
     println("Value of the objective function: ", real(Ez_vec' * O_mat * Ez_vec))
 
@@ -154,44 +156,20 @@ function FOM_eval(ξ_f_vec; U, V, β, η, dΩ, dΓ_s, design_params)
 
 end
 
-function rrule(::typeof(FOM_eval), ξ_f_vec; U, V, β, η, dΩ, dΓ_s, design_params)
-    function U_pullback(dgdg)
-      NO_FIELDS, dgdg * dFOM_dξf(ξ_f_vec; U, V, β, η, design_params)
-    end
-    FOM_eval(ξ_f_vec; U, V, β, η, dΩ, dΓ_s, design_params), U_pullback
-end
-
-function dFOM_dξf(ξ_f_vec; U, V, β, η, design_params)
-    
-    ξ_fh = FEFunction(design_params.Pf, ξ_f_vec)
-    ξ_th = (ξ_f -> Threshold(ξ_f; β, η)) ∘ ξ_fh
-    A_mat = MatrixA(ξ_th; U, V)
-    b_vec = assemble_vector(v->(∫(v)dΓ_s), V)
-    Ez_vec = A_mat \ b_vec
-
-    O_mat = MatrixFOM(U, V, dΩ)
-
-    Ez = FEFunction(U, Ez_vec)
-    λ_adj_vec =  A_mat' \ (O_mat * Ez_vec)
-    λ_adj_conjh = FEFunction(U, conj(λ_adj_vec))
-
-    l_temp(dξ) = ∫(real(-2 * dA_dξf(Ez, λ_adj_conjh, ξ_fh; β, η)) * dξ)dΩ_d
-    dfom_dξf = assemble_vector(l_temp, design_params.Pf)
-
-    return dfom_dξf
-end
 
 ξ_test = rand(design_params.np)
 δξ₀ = 1e-8
 δξ = δξ₀*rand(design_params.np)
 grad = zeros(design_params.np)
 
-FOM₀ = dFOM_dξ(ξ_test, grad; U, V, r_f, β, η, dΩ, dΩ_d, dΓ_s, design_params)
-FOM₁ = dFOM_dξ(ξ_test+δξ, []; U, V, r_f, β, η, dΩ, dΩ_d, dΓ_s, design_params)
+FOM₀ = dFOM_dξ(ξ_test, grad;  r_f, β, η, fem_params, design_params)
+FOM₁ = dFOM_dξ(ξ_test+δξ, []; r_f, β, η, fem_params, design_params)
 
 println("Finite difference check...")
 println(FOM₁-FOM₀)
 println(grad'*δξ)
+
+error("debug")
 
 println("Setting up the optimization...")
 
