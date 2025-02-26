@@ -6,3 +6,5 @@ eigenmode_calculator/*.txt
 *.vtu
 *.mph
 *.mph.lock
+examples/plane_wave.jl
+examples/3D_vect_fields.jl

@@ -105,7 +105,9 @@ end
 function FOM_ξ_new(ξ::Vector; r_f, β, η, fem_params, design_params, idx_x₀, val_x₀)
     ξ_f_vec = ξf_ξ(ξ; r_f, fem_params, design_params)
     Ez_vec = Ez_ξf(ξ_f_vec; β, η, fem_params, design_params)
-    FOM_Ez(Ez_vec; idx_x₀, val_x₀)
+    FOM = FOM_Ez(Ez_vec; idx_x₀, val_x₀)
+    println("The value of the FOM is: ", FOM)
+    return FOM
 end
 
 function dFOM_dξ(ξ::Vector, grad::Vector; r_f, β, η, fem_params, design_params, idx_x₀, val_x₀)

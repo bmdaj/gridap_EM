@@ -182,7 +182,7 @@ println("Finite difference check...")
 println(FOM₁ - FOM₀)
 println(grad' * δξ)
 
-error("debug")
+#error("debug")
 
 println("Setting up the optimization...")
 
@@ -193,7 +193,7 @@ function dFOM_dξ_optimize(ξ₀; r_f, β, η, TOL=1e-4, MAX_ITER=500) # NEED TO
     opt.upper_bounds = 1
     opt.ftol_rel = TOL
     opt.maxeval = MAX_ITER
-    opt.max_objective = (ξ, grad) -> dFOM_dξ(ξ, grad; U, V, r_f, β, η, dΩ, dΩ_d, dΓ_s, design_params)
+    opt.max_objective = (ξ, grad) -> dFOM_dξ(ξ, grad; r_f, β, η, fem_params, design_params, idx_x₀, val_x₀)
 
     (FOM_opt, ξ_opt, ret) = optimize(opt, ξ₀)
     @show numevals = opt.numevals # the number of function evaluations
@@ -210,7 +210,7 @@ FOM_opt, ξ_opt = dFOM_dξ_optimize(ξ_opt; r_f, β, η, TOL, MAX_ITER)
 
 println("Obtaining optimized solution...")
 
-ξ_f_vec = ξf_ξ(ξ_opt; r_f, dΩ_d)
+ξ_f_vec = ξf_ξ(ξ_opt; r_f, fem_params, design_params)
 ξ_fh = FEFunction(design_params.Pf, ξ_f_vec)
 ξ_th = (ξ_f -> Threshold(ξ_f; β, η)) ∘ ξ_fh
 A_mat = MatrixA(ξ_th; U, V)
