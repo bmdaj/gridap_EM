@@ -4,24 +4,23 @@ import Gmsh: gmsh
 function MeshGenerator(L, lc)
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)
-    gmsh.option.setNumber("Mesh.Algorithm3D", 2)
+    gmsh.option.setNumber("Mesh.Algorithm3D", 1)
     gmsh.option.setNumber("Mesh.SubdivisionAlgorithm", 1)
-    gmsh.option.setNumber("Mesh.RecombineAll", 1)  # Recombine all elements
-
+    #gmsh.option.setNumber("Mesh.RecombineAll", 1)  # Recombine all elements
 
     gmsh.clear()
     gmsh.model.add("cube")
 
     # Add points
-    gmsh.model.geo.addPoint(0, 0, 0, lc, 1)
-    gmsh.model.geo.addPoint(L, 0, 0, lc, 2)
-    gmsh.model.geo.addPoint(L, L, 0, lc, 3)
-    gmsh.model.geo.addPoint(0, L, 0, lc, 4)
-    gmsh.model.geo.addPoint(0, 0, L, lc, 5)
-    gmsh.model.geo.addPoint(L, 0, L, lc, 6)
-    gmsh.model.geo.addPoint(L, L, L, lc, 7)
-    gmsh.model.geo.addPoint(0, L, L, lc, 8)
-    gmsh.model.geo.addPoint(L/2, L/2, L/2, lc, 9)  # Center point
+    gmsh.model.geo.addPoint(-L/2, -L/2, -L/2, lc, 1)
+    gmsh.model.geo.addPoint(L/2, -L/2, -L/2, lc, 2)
+    gmsh.model.geo.addPoint(L/2, L/2, -L/2, lc, 3)
+    gmsh.model.geo.addPoint(-L/2, L/2, -L/2, lc, 4)
+    gmsh.model.geo.addPoint(-L/2, -L/2, L/2, lc, 5)
+    gmsh.model.geo.addPoint(L/2, -L/2, L/2, lc, 6)
+    gmsh.model.geo.addPoint(L/2, L/2, L/2, lc, 7)
+    gmsh.model.geo.addPoint(-L/2, L/2, L/2, lc, 8)
+    gmsh.model.geo.addPoint(0, 0, 0, lc, 9)  # Center point
 
     # Add lines
     gmsh.model.geo.addLine(1, 2, 1)
@@ -73,7 +72,7 @@ end
 
 # Geometry parameters
 L = 200          # Side length of the cube
-resol = 10.0     # Number of points per unit length
+resol = 20.0     # Number of points per unit length
 lc = L/resol     # Characteristic length
 
 MeshGenerator(L, lc)

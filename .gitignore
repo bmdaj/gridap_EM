@@ -2,9 +2,15 @@ geom/
 opt_results/
 eigenmode_calculator/plots/
 eigenmode_calculator/*.txt
+*.med
+*.mesh
 *.msh
+*.med.opt
+*.mph
+*.hdf
 *.vtu
 *.mph
 *.mph.lock
+*.png
 examples/plane_wave.jl
 examples/3D_vect_fields.jl
