@@ -1,7 +1,7 @@
 using Gmsh
 import Gmsh: gmsh
 
-function create_waveguide_mesh(w_tot, h_tot, w_wg, h_wg, w_src, w_dr, h_dr, lc)
+function create_waveguide_mesh(w_tot, h_tot, w_wg, h_wg, w_src, w_dr, h_dr, lc, x_dip, y_dip)
     gmsh.initialize()
     gmsh.model.add("waveguide")
 
@@ -30,27 +30,8 @@ function create_waveguide_mesh(w_tot, h_tot, w_wg, h_wg, w_src, w_dr, h_dr, lc)
     p10 = gmsh.model.geo.addPoint(w_wg + w_dr + x_off, (h_tot + h_dr) / 2 + y_off, 0, lc)
     p9 = gmsh.model.geo.addPoint(w_wg + x_off, (h_tot + h_dr) / 2 + y_off, 0, lc)
 
-    # Define points with characteristic length lc
-    #p4 = gmsh.model.geo.addPoint(0, 0, 0, lc)
-    #p3 = gmsh.model.geo.addPoint(w_tot, 0, 0, lc)
-    #p2 = gmsh.model.geo.addPoint(w_tot, h_tot, 0, lc)
-    #p1 = gmsh.model.geo.addPoint(0, h_tot, 0, lc)
-    #p16 = gmsh.model.geo.addPoint(w_src, 0, 0, lc)
-    #p13 = gmsh.model.geo.addPoint(w_src, h_tot, 0, lc)
-
-    # Define waveguide points 
-    #p7 = gmsh.model.geo.addPoint(0, (h_tot - h_wg) / 2, 0, lc)
-    #p5 = gmsh.model.geo.addPoint(0, (h_tot + h_wg) / 2, 0, lc)
-    #p14 = gmsh.model.geo.addPoint(w_src, (h_tot + h_wg) / 2, 0, lc)
-    #p15 = gmsh.model.geo.addPoint(w_src, (h_tot - h_wg) / 2, 0, lc)
-    #p6 = gmsh.model.geo.addPoint(w_wg, (h_tot + h_wg) / 2, 0, lc)
-    #p8 = gmsh.model.geo.addPoint(w_wg, (h_tot - h_wg) / 2, 0, lc)
-
-    # Define design region points 
-    #p12 = gmsh.model.geo.addPoint(w_wg, (h_tot - h_dr) / 2, 0, lc)
-    #p11 = gmsh.model.geo.addPoint(w_wg + w_dr, (h_tot - h_dr) / 2, 0, lc)
-    #p10 = gmsh.model.geo.addPoint(w_wg + w_dr, (h_tot + h_dr) / 2, 0, lc)
-    #p9 = gmsh.model.geo.addPoint(w_wg, (h_tot + h_dr) / 2, 0, lc)
+    # Define dipole point
+    p_dip = gmsh.model.geo.addPoint(x_dip, y_dip, 0, lc)
 
     # Define lines
     l1 = gmsh.model.geo.addLine(p1, p13,1)
@@ -83,7 +64,6 @@ function create_waveguide_mesh(w_tot, h_tot, w_wg, h_wg, w_src, w_dr, h_dr, lc)
     cl_wg_2 =  gmsh.model.geo.addCurveLoop([l11, -l13, -l12, -l20])
     cl_dr = gmsh.model.geo.addCurveLoop([l13, l14, l15, l16, l17, l18])
 
-   
     # Define surfaces for the regions between the waveguide and top/bottom regions
     surf_tot_1 = gmsh.model.geo.addPlaneSurface([cl_tot_1],1)
     surf_tot_2 = gmsh.model.geo.addPlaneSurface([cl_tot_2],2)
@@ -105,6 +85,10 @@ function create_waveguide_mesh(w_tot, h_tot, w_wg, h_wg, w_src, w_dr, h_dr, lc)
     gmsh.model.addPhysicalGroup(2, [4,5], 5)
     gmsh.model.setPhysicalName(2, 5, "Passive")
 
+    # Add physical group for the dipole point
+    gmsh.model.addPhysicalGroup(0, [p_dip], 6)
+    gmsh.model.setPhysicalName(0, 6, "Dipole")
+
     # Synchronize and generate mesh
     gmsh.model.geo.synchronize()
     gmsh.model.occ.synchronize()
@@ -123,9 +107,12 @@ w_wg = 200            # Width of the waveguide
 h_wg = 15            # Height of the waveguide
 w_src  = 80          # Location of the source
 w_dr = 75               # Width of the design region
-h_dr = 75               # Height of the design region
+h_dr = 75            # Height of the design region
 
-resol = 50.0      # Number of points per wavelength
+x_dip = 0.0          # x-coordinate of the dipole
+y_dip = 0.0          # y-coordinate of the dipole
+
+resol = 25.0      # Number of points per wavelength
 lc = λ/resol      # Characteristic length
 
-create_waveguide_mesh(w_tot, h_tot, w_wg, h_wg, w_src, w_dr, h_dr, lc)
+create_waveguide_mesh(w_tot, h_tot, w_wg, h_wg, w_src, w_dr, h_dr, lc, x_dip, y_dip)
